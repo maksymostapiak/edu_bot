@@ -21,18 +21,16 @@ class User(Base):
     course: Mapped[Optional[int]] = mapped_column(Integer)
     group_name: Mapped[Optional[str]] = mapped_column(String(50), index=True)
     
-    # Налаштування сповіщень
+
     push_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Наприклад: ["schedule_changes", "deadlines", "payments"]
+
     notification_categories: Mapped[list] = mapped_column(JSON, default=list)
     
-    # Роль та рівень доступу (об'єднання User та Admin)
+
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    access_level: Mapped[int] = mapped_column(Integer, default=0)  # 0 - студент, 1+ - адмін
-    
+    access_level: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    # Зв'язки
     messages: Mapped[List["ChatMessage"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     favorites: Mapped[List["FavoriteSchedule"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
@@ -42,7 +40,7 @@ class FavoriteSchedule(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    target_type: Mapped[str] = mapped_column(String(20))  # "group" або "teacher"
+    target_type: Mapped[str] = mapped_column(String(20))
     target_name: Mapped[str] = mapped_column(String(100))
 
     user: Mapped["User"] = relationship(back_populates="favorites")
@@ -53,7 +51,7 @@ class ChatMessage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    role: Mapped[str] = mapped_column(String(20))  # "user" або "assistant"
+    role: Mapped[str] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
