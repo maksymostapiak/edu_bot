@@ -182,3 +182,32 @@ async def upload_knowledge_document(
         raise HTTPException(status_code=400, detail=str(e))
 
     return {"status": "indexed", "filename": file.filename, "chunks_saved": chunks_saved}
+
+@app.get("/api/admin/knowledge-base")
+async def list_knowledge_documents(db: Session = Depends(get_db)):
+    return {"documents": AiConsultationModel(db).list_documents()}
+
+@app.delete("/api/admin/knowledge-base/{document_name}")
+async def delete_knowledge_document(document_name: str, db: Session = Depends(get_db)):
+    deleted = AiConsultationModel(db).delete_document(document_name)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Документ не знайдено")
+    return {"status": "deleted", "document_name": document_name, "chunks_deleted": deleted}
+
+class UpdateGroupRequest(BaseModel):
+    session_id: str
+    group_name: str
+
+
+@app.put("/api/chat/group")
+def update_user_group(payload: UpdateGroupRequest, db: Session = Depends(get_db)):
+    user_model = UserModel(db)
+    user = user_model.get_or_create(session_id=payload.session_id)
+    try:
+        user_model.update_group(user, payload.group_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    response = serialize_user_state(db, user)
+    response["reply"] = f"✅ Основну групу змінено на <b>{user.group_name}</b>."
+    return response

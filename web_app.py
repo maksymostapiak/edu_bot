@@ -60,8 +60,12 @@ def proxy_schedule_config():
     return jsonify(resp.json()), resp.status_code
 
 
-@app.route("/api/admin/knowledge-base", methods=["POST"])
-def proxy_knowledge_upload():
+@app.route("/api/admin/knowledge-base", methods=["GET", "POST"])
+def proxy_knowledge_base():
+    if request.method == "GET":
+        resp = httpx.get(f"{FASTAPI_URL}/api/admin/knowledge-base", timeout=15.0)
+        return jsonify(resp.json()), resp.status_code
+
     file = request.files.get("file")
     source_url = request.form.get("source_url", "")
     if not file:
@@ -70,6 +74,19 @@ def proxy_knowledge_upload():
     files = {"file": (file.filename, file.read(), file.mimetype)}
     data = {"source_url": source_url} if source_url else {}
     resp = httpx.post(f"{FASTAPI_URL}/api/admin/knowledge-base", files=files, data=data, timeout=60.0)
+    return jsonify(resp.json()), resp.status_code
+
+
+@app.route("/api/admin/knowledge-base/<path:document_name>", methods=["DELETE"])
+def proxy_knowledge_delete(document_name):
+    resp = httpx.delete(f"{FASTAPI_URL}/api/admin/knowledge-base/{document_name}", timeout=15.0)
+    return jsonify(resp.json()), resp.status_code
+
+@app.route("/api/chat/group", methods=["PUT"])
+def proxy_chat_group():
+    payload = request.get_json() or {}
+    payload["session_id"] = get_session_id()
+    resp = httpx.put(f"{FASTAPI_URL}/api/chat/group", json=payload, timeout=15.0)
     return jsonify(resp.json()), resp.status_code
 
 

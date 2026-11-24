@@ -75,6 +75,10 @@
         <button class="menu-btn" onclick="sendAction('menu_notifications')">
             🔔 Сповіщення: <span id="notifStatus">Увімкнено</span>
         </button>
+        <div id="groupSettings" style="margin-top: 8px; display: flex; gap: 6px;">
+    <input type="text" id="newGroupInput" placeholder="Наприклад: ІПЗ-41" style="flex: 1; padding: 6px 8px; border-radius: 6px;">
+    <button type="button" id="saveGroupBtn" style="padding: 6px 10px; border-radius: 6px; cursor: pointer;">Зберегти</button>
+</div>
     </div>
 
     <div class="card">
@@ -200,6 +204,28 @@
         inputEl.value = '';
         sendPayload({ text }, text);
     });
+
+    document.getElementById('saveGroupBtn').addEventListener('click', async () => {
+    const input = document.getElementById('newGroupInput');
+    const groupName = input.value.trim();
+    if (!groupName) return;
+
+    const res = await fetch('/api/chat/group', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_name: groupName })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        input.value = '';
+        if (data.user && typeof renderSidebar === 'function') {
+            renderSidebar(data);
+        }
+        if (data.reply && typeof appendBotMessage === 'function') {
+            appendBotMessage(data.reply);
+        }
+    }
+});
 
     initChat();
 </script>
