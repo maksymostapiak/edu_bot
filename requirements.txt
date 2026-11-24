@@ -1,8 +1,10 @@
 fastapi
 uvicorn
+flask
 httpx
 python-multipart
 pypdf
 sqlalchemy
 psycopg2-binary
 pgvector
+google-genai

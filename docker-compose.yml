@@ -1,34 +1,48 @@
 services:
   db:
     image: pgvector/pgvector:pg16
-    container_name: viber-bot-db
+    container_name: edu-bot-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: viber_edu_bot
+      POSTGRES_DB: edu_bot_db
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d viber_edu_bot"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d edu_bot_db"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  bot:
+  api:
     build: .
-    container_name: viber-edu-bot
+    container_name: edu-bot-api
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:password@db:5432/viber_edu_bot
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DATABASE_URL: postgresql+psycopg2://postgres:password@db:5432/edu_bot_db
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    command: uvicorn api_app:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+
+  web:
+    build: .
+    container_name: edu-bot-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      FASTAPI_URL: http://api:8000
+      FLASK_SECRET_KEY: super-secret-edu-bot-key
+    command: python web_app.py
+    ports:
+      - "5000:5000"
 
 volumes:
   pgdata:

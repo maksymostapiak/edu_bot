@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Освітній Чат-Бот ЗВО</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; }
+
+        /* Бічна панель */
+        .sidebar {
+            width: 300px; background: #1e293b; border-right: 1px solid #334155;
+            display: flex; flex-direction: column; padding: 20px; gap: 18px; overflow-y: auto;
+        }
+        .brand { font-size: 1.2rem; font-weight: 700; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; }
+        .brand a { font-size: 0.78rem; color: #94a3b8; text-decoration: none; border: 1px solid #475569; padding: 4px 8px; border-radius: 6px; }
+        .brand a:hover { color: #fff; border-color: #38bdf8; }
+
+        .card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px; }
+        .card h4 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .menu-btn {
+            width: 100%; text-align: left; background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+            padding: 9px 12px; border-radius: 8px; margin-bottom: 6px; cursor: pointer; font-size: 0.9rem; transition: 0.15s;
+        }
+        .menu-btn:hover { background: #334155; border-color: #38bdf8; }
+        .menu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+        .notif-item { font-size: 0.82rem; padding: 8px; background: #1e293b; border-left: 3px solid #38bdf8; border-radius: 4px; margin-bottom: 6px; }
+        .notif-cat { font-weight: 700; color: #38bdf8; font-size: 0.72rem; }
+
+        /* Основна зона чату */
+        .chat-area { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+        .chat-header {
+            padding: 16px 24px; background: #1e293b; border-bottom: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .status-badge { font-size: 0.82rem; color: #4ade80; }
+
+        .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .msg { max-width: 72%; padding: 12px 16px; border-radius: 12px; line-height: 1.45; white-space: pre-wrap; font-size: 0.95rem; }
+        .msg.user { align-self: flex-end; background: #2563eb; color: #fff; border-bottom-right-radius: 2px; }
+        .msg.assistant { align-self: flex-start; background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 2px; }
+        .sources { margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155; font-size: 0.82rem; color: #94a3b8; }
+        .sources a { color: #38bdf8; }
+
+        .input-bar {
+            padding: 16px 24px; background: #1e293b; border-top: 1px solid #334155;
+            display: flex; gap: 10px;
+        }
+        .input-bar input {
+            flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff;
+            padding: 12px 16px; border-radius: 10px; font-size: 0.95rem; outline: none;
+        }
+        .input-bar input:focus { border-color: #38bdf8; }
+        .input-bar button {
+            background: #2563eb; color: #fff; border: none; padding: 0 22px;
+            border-radius: 10px; font-weight: 600; cursor: pointer;
+        }
+        .input-bar button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="brand">
+        <span>🎓 EduBot</span>
+        <a href="/admin">Адмінка</a>
+    </div>
+
+    <div class="card">
+        <h4>Профіль</h4>
+        <div style="font-size: 0.9rem; margin-bottom: 8px;">Група: <strong id="userGroup">ІПЗ-31</strong></div>
+        <button class="menu-btn" onclick="sendAction('menu_notifications')">
+            🔔 Сповіщення: <span id="notifStatus">Увімкнено</span>
+        </button>
+    </div>
+
+    <div class="card">
+        <h4>📅 Розклад</h4>
+        <div class="menu-row">
+            <button class="menu-btn" onclick="sendAction('schedule_today')">Сьогодні</button>
+            <button class="menu-btn" onclick="sendAction('schedule_tomorrow')">Завтра</button>
+        </div>
+        <button class="menu-btn" onclick="sendAction('schedule_week')">📆 На тиждень</button>
+        <button class="menu-btn" onclick="sendAction('schedule_search')">🔍 Пошук групи / викладача</button>
+        <button class="menu-btn" onclick="sendAction('menu_favorites')">⭐ Вибрані розклади</button>
+    </div>
+
+    <div class="card">
+        <h4>📢 Останні сповіщення</h4>
+        <div id="notificationsList" style="font-size: 0.85rem; color: #94a3b8;">Немає нових оголошень</div>
+    </div>
+</aside>
+
+<main class="chat-area">
+    <div class="chat-header">
+        <div>
+            <strong>ШІ-консультант та навігатор студента</strong>
+            <div style="font-size: 0.8rem; color: #94a3b8;">Запитайте про розклад, правила ЗВО або документи</div>
+        </div>
+        <span class="status-badge">● Онлайн</span>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <form class="input-bar" id="chatForm">
+        <input type="text" id="messageInput" placeholder="Напишіть запитання або назву групи..." autocomplete="off" required>
+        <button type="submit">Надіслати</button>
+    </form>
+</main>
+
+<script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('messageInput');
+
+    function appendMessage(role, text, sources = []) {
+        const div = document.createElement('div');
+        div.className = `msg ${role}`;
+        div.textContent = text;
+
+        if (sources && sources.length > 0) {
+            const srcDiv = document.createElement('div');
+            srcDiv.className = 'sources';
+            srcDiv.innerHTML = '📎 Джерела:<br>' + sources.map(s => `<a href="${s}" target="_blank">${s}</a>`).join('<br>');
+            div.appendChild(srcDiv);
+        }
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function updateSidebar(data) {
+        if (data.user) {
+            document.getElementById('userGroup').textContent = data.user.group_name || 'Не вказано';
+            document.getElementById('notifStatus').textContent = data.user.notifications_enabled ? 'Увімкнено ✅' : 'Вимкнено ❌';
+        }
+        if (data.notifications) {
+            const list = document.getElementById('notificationsList');
+            if (data.notifications.length === 0) {
+                list.textContent = 'Немає нових оголошень';
+            } else {
+                list.innerHTML = data.notifications.map(n => `
+                    <div class="notif-item">
+                        <div class="notif-cat">${n.category.toUpperCase()}</div>
+                        <div>${n.message_text}</div>
+                    </div>
+                `).join('');
+            }
+        }
+    }
+
+    async function initChat() {
+        try {
+            const res = await fetch('/api/chat/init');
+            const data = await res.json();
+            updateSidebar(data);
+            if (data.history && data.history.length > 0) {
+                data.history.forEach(m => appendMessage(m.role, m.content));
+            } else {
+                appendMessage('assistant', 'Вітаю! Я освітній чат-бот університету. Оберіть дію зліва або напишіть запитання.');
+            }
+        } catch (e) {
+            appendMessage('assistant', '⚠️ Не вдалося підключитися до API сервера.');
+        }
+    }
+
+    async function sendPayload(payload, userDisplayText = null) {
+        if (userDisplayText) appendMessage('user', userDisplayText);
+        try {
+            const res = await fetch('/api/chat/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            appendMessage('assistant', data.reply || 'Помилка обробки запиту.', data.sources || []);
+            updateSidebar(data);
+        } catch (e) {
+            appendMessage('assistant', '⚠️ Помилка з\'єднання із сервером.');
+        }
+    }
+
+    function sendAction(action) {
+        const labels = {
+            schedule_today: '📅 Розклад на сьогодні',
+            schedule_tomorrow: '📅 Розклад на завтра',
+            schedule_week: '📆 Розклад на тиждень',
+            schedule_search: '🔍 Пошук розкладу',
+            menu_favorites: '⭐ Мої вибрані розклади',
+            menu_notifications: '🔔 Перемкнути сповіщення'
+        };
+        sendPayload({ action }, labels[action] || action);
+    }
+
+    document.getElementById('chatForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = inputEl.value.trim();
+        if (!text) return;
+        inputEl.value = '';
+        sendPayload({ text }, text);
+    });
+
+    initChat();
+</script>
+</body>
+</html>
